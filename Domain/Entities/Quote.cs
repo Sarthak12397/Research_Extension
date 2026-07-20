@@ -27,3 +27,77 @@ public class Quote
     public bool IsExpired => DateTime.UtcNow > RateExpiresAt && !IsConverted;
 
     private Quote() { }
+
+
+
+     public Quote(
+        Guid corridorId,
+        Guid corridorRateId,
+        Guid senderId,
+        Guid beneficiaryId,
+        PayoutMethod payoutMethod,
+        CalculationDirection direction,
+        decimal sendAmount,
+        decimal serviceFee,
+        decimal taxAmount,
+        decimal lockedCustomerRate,
+        decimal payoutAmount,
+        int rateLockMinutes,
+        string quoteReference,
+        string createdBy)
+    {
+        if (sendAmount <= 0)
+            throw new ArgumentException("Send amount must be positive.");
+        if (lockedCustomerRate <= 0)
+            throw new ArgumentException("Locked customer rate must be positive.");
+        if (payoutAmount <= 0)
+            throw new ArgumentException("Payout amount must be positive.");
+        if (rateLockMinutes <= 0)
+            throw new ArgumentException("Rate lock minutes must be positive.");
+        if (string.IsNullOrWhiteSpace(quoteReference))
+            throw new ArgumentException("Quote reference is required.");
+
+        Id = Guid.NewGuid();
+        QuoteReference = quoteReference;
+        CorridorId = corridorId;
+        CorridorRateId = corridorRateId;
+        SenderId = senderId;
+        BeneficiaryId = beneficiaryId;
+        PayoutMethod = payoutMethod;
+        Direction = direction;
+        SendAmount = sendAmount;
+        ServiceFee = serviceFee;
+        TaxAmount = taxAmount;
+        TotalPayable = sendAmount + serviceFee + taxAmount;
+        LockedCustomerRate = lockedCustomerRate;
+        PayoutAmount = payoutAmount;
+        IsConverted = false;
+        RateExpiresAt = DateTime.UtcNow.AddMinutes(rateLockMinutes);
+        CreatedAt = DateTime.UtcNow;
+        CreatedBy = createdBy;
+    }
+
+
+
+       public void ValidateNotExpired()
+    {
+        if (IsExpired)
+            throw new RateExpiredException(QuoteReference);
+    }
+
+
+       public void ValidateNotConverted()
+    {
+        if (IsConverted)
+            throw new QuoteAlreadyConvertedException(QuoteReference);
+    }
+
+
+        public void MarkAsConverted()
+    {
+        ValidateNotExpired();
+        ValidateNotConverted();
+        IsConverted = true;
+    }
+
+}
